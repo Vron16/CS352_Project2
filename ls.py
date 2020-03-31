@@ -23,7 +23,7 @@ def handle_connection(client_connection_socket, ts1_hostname, ts1_listen_port, t
 		print "[LS]: Could not create socket to establish LS-TS1 connection due to error: ", str(err)
 	ts1_hostname_ip = mysoc.gethostbyname(ts1_hostname)
 	ts1_server_binding = (ts1_hostname_ip, ts1_listen_port)
-	ts1_ls_socket.setblocking(0)
+	#ts1_ls_socket.setblocking(0)
 	ts1_ls_socket.connect(ts1_server_binding)
 
 	try:
@@ -33,7 +33,7 @@ def handle_connection(client_connection_socket, ts1_hostname, ts1_listen_port, t
 		print "[LS]: Could not create socket to establish LS-TS2 connection due to error: ", str(err)
 	ts2_hostname_ip = mysoc.gethostbyname(ts2_hostname)
 	ts2_server_binding = (ts2_hostname_ip, ts2_listen_port)
-	ts2_ls_socket.setblocking(0)
+	#ts2_ls_socket.setblocking(0)
 	ts2_ls_socket.connect(ts2_server_binding)
 
 	# Keep servicing queried hostnames from the client until it is done.
@@ -41,6 +41,8 @@ def handle_connection(client_connection_socket, ts1_hostname, ts1_listen_port, t
 		client_query = client_connection_socket.recv(4096).decode('utf-8').strip().lower()
 		# If the query is 'done', then we break out of the loop and clean everything up.
 		if (client_query == 'done'):
+			ts1_ls_socket.send(client_query.encode('utf-8'))
+			ts2_ls_socket.send(client_query.encode('utf-8'))	
 			break
 		print "[LS]: Received request to find IP address for the hostname:", client_query
 		
@@ -49,12 +51,12 @@ def handle_connection(client_connection_socket, ts1_hostname, ts1_listen_port, t
 		ts2_ls_socket.send(client_query.encode('utf-8'))
 
 		# Now, call select with both TS server sockets as inputs so it listens to both simultaneously with a timeout of 5 seconds.
-		ts_response_sockets = select.select([ts1_ls_socket, ts2_ls_socket], [], [], 5)
+		ts_response_sockets, _, _ = select.select([ts1_ls_socket, ts2_ls_socket], [], [], 5)
 		# If after 5 seconds no sockets are readable, then hostname is not found. Send error message back.
 		if (len(ts_response_sockets) == 0):
 			print "[LS]: Queried hostname is not in TS 1 or TS 2's tables. Error:HOST NOT FOUND."
 			error_response = client_query + " - Error:HOST NOT FOUND"
-			connection_socket.send(error_response).encode('utf-8')
+			client_connection_socket.send(error_response.encode('utf-8'))
 		# Otherwise, if exactly one socket is readable, then we can send that back to the client.
 		elif (len(ts_response_sockets) == 1):
 			if (ts_response_sockets[0] is ts1_ls_socket):
@@ -70,7 +72,10 @@ def handle_connection(client_connection_socket, ts1_hostname, ts1_listen_port, t
 			else:
 				raise ValueError("[LS]: Error - Received an unexpected socket.")
 		else:
-			raise ValueError("[LS]: Error - Multiple sockets responded to the query. Check that the TS1.txt and TS2.txt files have no overlap.")
+			for sock in ts_response_sockets:
+				data = sock.recv(4096)
+				print "The data is:", data
+			#raise ValueError("[LS]: Error - Multiple sockets responded to the query. Check that the TS1.txt and TS2.txt files have no overlap.")
 	# The client has indicated that it is done. We can now safely tear down the connections to the TS servers and to the client.
 	ts1_ls_socket.close()
 	ts2_ls_socket.close()
