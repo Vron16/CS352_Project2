@@ -61,21 +61,16 @@ def handle_connection(client_connection_socket, ts1_hostname, ts1_listen_port, t
 		elif (len(ts_response_sockets) == 1):
 			if (ts_response_sockets[0] is ts1_ls_socket):
 				address_response = ts1_ls_socket.recv(4096)
-				address_response = address_response + " " + ts1_hostname
-				print "[LS]: Found queried hostname in TS 1. Sending following string back to client:", address_response
+				print "[LS]: Found queried hostname in TS 1, which has hostname:", ts1_hostname, ". Sending following string back to client:", address_response
 				client_connection_socket.send(address_response.encode('utf-8'))
 			elif (ts_response_sockets[0] is ts2_ls_socket):
 				address_response = ts2_ls_socket.recv(4096)
-				address_response = address_response + " " + ts2_hostname
-				print "[LS]: Found queried hostname in TS 2. Sending following string back to client:", address_response
+				print "[LS]: Found queried hostname in TS 2, which has hostname:", ts2_hostname, ". Sending following string back to client:", address_response
 				client_connection_socket.send(address_response.encode('utf-8'))
 			else:
 				raise ValueError("[LS]: Error - Received an unexpected socket.")
 		else:
-			for sock in ts_response_sockets:
-				data = sock.recv(4096)
-				print "The data is:", data
-			#raise ValueError("[LS]: Error - Multiple sockets responded to the query. Check that the TS1.txt and TS2.txt files have no overlap.")
+			raise ValueError("[LS]: Error - Multiple sockets responded to the query. Check that the TS1.txt and TS2.txt files have no overlap.")
 	# The client has indicated that it is done. We can now safely tear down the connections to the TS servers and to the client.
 	ts1_ls_socket.close()
 	ts2_ls_socket.close()

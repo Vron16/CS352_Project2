@@ -2,3 +2,12 @@ www.princeton.edu
 rutgers.com
 nothinghere.com
 amazon.org
+kill.cs.rutgers.edu
+mx.rutgers.com
+www.ibm.edu
+google.com
+www.google.com
+MX.RUTGERS.EDU
+www.mongodb.com
+www.express.co.uk
+www.nytimes.com
